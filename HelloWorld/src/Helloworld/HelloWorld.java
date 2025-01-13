@@ -20,7 +20,7 @@ public class HelloWorld {
             public void run() {
                 try {
                     // Load model from .obj file
-                    String objFilePath = "model.obj"; // Specify the path to your .obj file
+                    String objFilePath = new File(".").getCanonicalPath() + "\\test\\HelloWorld\\src\\Helloworld\\model2.obj";
                     ModelData modelData = loadModel(objFilePath);
 
                     int[] screenSz = {800, 800};

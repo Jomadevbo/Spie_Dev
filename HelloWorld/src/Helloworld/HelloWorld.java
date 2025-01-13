@@ -20,11 +20,11 @@ public class HelloWorld {
             public void run() {
                 try {
                     // Load model from .obj file
-                    String objFilePath = new File(".").getCanonicalPath() + "\\test\\HelloWorld\\src\\Helloworld\\model.obj";
+                    String objFilePath = new File(".").getCanonicalPath() + "\\test\\HelloWorld\\src\\Helloworld\\auto.obj";
                     ModelData modelData = loadModel(objFilePath);
 
                     int[] screenSz = {800, 800};
-                    int focalLength = 800;
+                    int focalLength = 200;
 
                     LineComponent lineComponent = new LineComponent(screenSz[0], screenSz[1]);
 
@@ -74,7 +74,7 @@ public class HelloWorld {
         while ((line = reader.readLine()) != null) {
             String[] parts = line.trim().split("\\s+");
             if (parts.length == 0) continue;
-
+            int start;
             if (parts[0].equals("v")) { // Vertex line
                 double x = Double.parseDouble(parts[1]);
                 double y = Double.parseDouble(parts[2]);
@@ -89,7 +89,7 @@ public class HelloWorld {
 
                 // Add edges for the face
                 for (int i = 0; i < faceIndices.length; i++) {
-                    int start = faceIndices[i];
+                    start = faceIndices[i];
                     int end = faceIndices[(i + 1) % faceIndices.length];
                     int[] edge = {Math.min(start, end), Math.max(start, end)};
                     if (!lines.contains(edge)) {

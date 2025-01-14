@@ -1,6 +1,8 @@
 package helloworld;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Polygon;       
@@ -23,8 +25,8 @@ public class HelloWorld {
                     String objFilePath = new File(".").getCanonicalPath() + "\\src\\Helloworld\\model.obj";
                     ModelData modelData = loadModel(objFilePath);
 
-                    int[] screenSz = {800, 800};
-                    int focalLength = 400;
+                    int[] screenSz = {1300, 700};
+                    int focalLength = 1200;
 
                     LineComponent lineComponent = new LineComponent(screenSz[0], screenSz[1]);
 
@@ -178,7 +180,7 @@ public class HelloWorld {
     // Calculate the brightness based on the dot product of the normal and light direction
     public static double calculateBrightness(double[] normal) {
         // Example light direction (you can make this dynamic)
-        double[] lightDir = {0, 1, 0}; // Light coming from the positive Z direction
+        double[] lightDir = {0.5, 0.5, 0}; // Light coming from the positive Z direction
 
         // Calculate the dot product between the normal and the light direction
         double dotProduct = normal[0] * lightDir[0] + normal[1] * lightDir[1] + normal[2] * lightDir[2];
@@ -252,6 +254,11 @@ class LineComponent extends JComponent {
     }
 
     protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+        
+        // Set rendering hints for antialiasing
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         super.paintComponent(g);
 
         g.setColor(Color.WHITE);

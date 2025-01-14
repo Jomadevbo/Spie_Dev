@@ -26,7 +26,7 @@ public class HelloWorld {
                     ModelData modelData = loadModel(objFilePath);
 
                     int[] screenSz = {1300, 700};
-                    int focalLength = 1200;
+                    int focalLength = 110;
 
                     LineComponent lineComponent = new LineComponent(screenSz[0], screenSz[1]);
 
@@ -36,9 +36,9 @@ public class HelloWorld {
                     JButton rotateButton = new JButton("Rotate");
                     panel.add(rotateButton);
 
-                    Timer timer = new Timer(50, new java.awt.event.ActionListener() {
+                    Timer timer = new Timer(25, new java.awt.event.ActionListener() {
                         public void actionPerformed(java.awt.event.ActionEvent e) {
-                            rotateCube(modelData.VertTable, 1);
+                            rotateCube(modelData.VertTable, 2);
                             lineComponent.clear();
                             drawFaces(modelData, lineComponent, focalLength, screenSz);
                             //drawLines(modelData, lineComponent, focalLength, screenSz);

@@ -1,12 +1,12 @@
-package Helloworld;
+package helloworld;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Polygon;
+import java.awt.Polygon;       
 import java.awt.geom.Line2D;
 import java.io.*;
-import java.util.*;
+import java.util.*; 
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -20,11 +20,11 @@ public class HelloWorld {
             public void run() {
                 try {
                     // Load model from .obj file
-                    String objFilePath = new File(".").getCanonicalPath() + "\\test\\HelloWorld\\src\\Helloworld\\auto.obj";
+                    String objFilePath = new File(".").getCanonicalPath() + "\\src\\Helloworld\\model.obj";
                     ModelData modelData = loadModel(objFilePath);
 
                     int[] screenSz = {800, 800};
-                    int focalLength = 200;
+                    int focalLength = 800;
 
                     LineComponent lineComponent = new LineComponent(screenSz[0], screenSz[1]);
 
@@ -39,10 +39,10 @@ public class HelloWorld {
                             rotateCube(modelData.VertTable, 1);
                             lineComponent.clear();
                             drawFaces(modelData, lineComponent, focalLength, screenSz);
-                            drawLines(modelData, lineComponent, focalLength, screenSz);
+                            //drawLines(modelData, lineComponent, focalLength, screenSz);
                         }
                     });
-
+					
                     rotateButton.addActionListener(new java.awt.event.ActionListener() {
                         public void actionPerformed(java.awt.event.ActionEvent e) {
                             if (timer.isRunning()) {
@@ -52,10 +52,10 @@ public class HelloWorld {
                             }
                         }
                     });
-
+					
                     JOptionPane.showMessageDialog(null, panel);
                     drawFaces(modelData, lineComponent, focalLength, screenSz);
-                    drawLines(modelData, lineComponent, focalLength, screenSz);
+                    //drawLines(modelData, lineComponent, focalLength, screenSz);
 
                 } catch (IOException ex) {
                     ex.printStackTrace();
@@ -107,36 +107,85 @@ public class HelloWorld {
         return new ModelData(vertArray, lineArray, faceArray);
     }
 
-    public static void drawLines(ModelData model, LineComponent lineComponent, int focalLength, int[] screenSz) {
-        for (int[] line : model.LineTable) {
-            double[] start = model.VertTable[line[0]];
-            double[] end = model.VertTable[line[1]];
-            double[] proj1 = ProjectionMapper(start[0], start[1], start[2], focalLength);
-            double[] proj2 = ProjectionMapper(end[0], end[1], end[2], focalLength);
-
-            lineComponent.addLine(
-                proj1[0] + screenSz[0] / 2, 
-                screenSz[1] / 2 - proj1[1], 
-                proj2[0] + screenSz[0] / 2, 
-                screenSz[1] / 2 - proj2[1]
-            );
-        }
-    }
-
     public static void drawFaces(ModelData model, LineComponent lineComponent, int focalLength, int[] screenSz) {
+        List<FaceData> faceDataList = new ArrayList<>();
+
         for (int[] face : model.FaceTable) {
             int[] xPoints = new int[face.length];
             int[] yPoints = new int[face.length];
+            double meanZ = 0;
+
+            // Calculate the face normal and determine brightness
+            double[] normal = calculateNormal(model.VertTable, face);
+            double brightness = calculateBrightness(normal);
 
             for (int j = 0; j < face.length; j++) {
                 double[] vertex = model.VertTable[face[j]];
+                meanZ += vertex[2];
                 double[] proj = ProjectionMapper(vertex[0], vertex[1], vertex[2], focalLength);
                 xPoints[j] = (int) (proj[0] + screenSz[0] / 2);
                 yPoints[j] = (int) (screenSz[1] / 2 - proj[1]);
             }
 
-            lineComponent.addFace(xPoints, yPoints, Color.LIGHT_GRAY); // Default face color
+            meanZ /= face.length;
+            faceDataList.add(new FaceData(meanZ, xPoints, yPoints, brightness));
         }
+
+        // Sort the faces by meanZ to draw the closest ones last (in front)
+        faceDataList.sort((a, b) -> Double.compare(b.meanZ, a.meanZ));
+
+        // Draw faces with proper brightness
+        for (FaceData faceData : faceDataList) {
+            int brightnessValue = (int) (faceData.brightness * 255);
+            brightnessValue = Math.max(0, Math.min(255, brightnessValue));
+            Color faceColor = new Color(brightnessValue, brightnessValue, brightnessValue);
+            
+            // Apply color and draw the triangle
+            lineComponent.addFace(faceData.xPoints, faceData.yPoints, faceColor);
+        }
+    }
+
+    // Calculate the normal vector of a face using its vertices
+    public static double[] calculateNormal(double[][] VertTable, int[] face) {
+        double[] v0 = VertTable[face[0]];
+        double[] v1 = VertTable[face[1]];
+        double[] v2 = VertTable[face[2]];
+
+        // Calculate two edge vectors
+        double[] edge1 = {v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]};
+        double[] edge2 = {v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]};
+
+        // Calculate the cross product to find the normal
+        double[] normal = {
+            edge1[1] * edge2[2] - edge1[2] * edge2[1],
+            edge1[2] * edge2[0] - edge1[0] * edge2[2],
+            edge1[0] * edge2[1] - edge1[1] * edge2[0]
+        };
+
+        // Normalize the normal vector
+        double length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+        if (length != 0) {
+            normal[0] /= length;
+            normal[1] /= length;
+            normal[2] /= length;
+        }
+
+        return normal;
+    }
+
+    // Calculate the brightness based on the dot product of the normal and light direction
+    public static double calculateBrightness(double[] normal) {
+        // Example light direction (you can make this dynamic)
+        double[] lightDir = {0, 0, 1}; // Light coming from the positive Z direction
+
+        // Calculate the dot product between the normal and the light direction
+        double dotProduct = normal[0] * lightDir[0] + normal[1] * lightDir[1] + normal[2] * lightDir[2];
+
+        // Clamp the dot product to be between 0 and 240, seperation from Background was nescessary
+        double brightnessFactor = Math.min(255, Math.max(0, (dotProduct+1)*120));
+
+        return brightnessFactor;
+
     }
 
     public static double[] ProjectionMapper(double x, double y, double z, double focalLength) {
@@ -176,7 +225,7 @@ class ModelData {
 
 class LineComponent extends JComponent {
     private ArrayList<Line2D.Double> lines;
-    private ArrayList<Polygon> faces;
+    private ArrayList<ColoredPolygon> faces; // Change to store ColoredPolygon
 
     public LineComponent(int width, int height) {
         setPreferredSize(new Dimension(width, height));
@@ -191,7 +240,7 @@ class LineComponent extends JComponent {
 
     public void addFace(int[] xPoints, int[] yPoints, Color color) {
         Polygon polygon = new Polygon(xPoints, yPoints, xPoints.length);
-        faces.add(polygon);
+        faces.add(new ColoredPolygon(polygon, color)); // Store both polygon and color
         repaint();
     }
 
@@ -206,11 +255,13 @@ class LineComponent extends JComponent {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, getWidth(), getHeight());
 
-        g.setColor(Color.LIGHT_GRAY);
-        for (Polygon face : faces) {
-            g.fillPolygon(face);
+        // Draw faces with the calculated color
+        for (ColoredPolygon coloredPolygon : faces) {
+            g.setColor(coloredPolygon.color); // Use the stored color
+            g.fillPolygon(coloredPolygon.polygon);
         }
 
+        // Draw lines on top of the faces
         g.setColor(Color.BLACK);
         for (Line2D.Double line : lines) {
             g.drawLine(
@@ -220,5 +271,28 @@ class LineComponent extends JComponent {
                 (int) line.getY2()
             );
         }
+    }
+}
+
+class FaceData {
+    public double meanZ;
+    public int[] xPoints;
+    public int[] yPoints;
+    public double brightness;
+
+    public FaceData(double meanZ, int[] xPoints, int[] yPoints, double brightness) {
+        this.meanZ = meanZ;
+        this.xPoints = xPoints;
+        this.yPoints = yPoints;
+        this.brightness = brightness;
+    }
+}
+class ColoredPolygon {
+    Polygon polygon;
+    Color color;
+
+    public ColoredPolygon(Polygon polygon, Color color) {
+        this.polygon = polygon;
+        this.color = color;
     }
 }

@@ -24,7 +24,7 @@ public class HelloWorld {
                     ModelData modelData = loadModel(objFilePath);
 
                     int[] screenSz = {800, 800};
-                    int focalLength = 800;
+                    int focalLength = 400;
 
                     LineComponent lineComponent = new LineComponent(screenSz[0], screenSz[1]);
 
@@ -136,14 +136,16 @@ public class HelloWorld {
 
         // Draw faces with proper brightness
         for (FaceData faceData : faceDataList) {
-            int brightnessValue = (int) (faceData.brightness * 255);
+        
+            int brightnessValue = (int) (faceData.brightness);
             brightnessValue = Math.max(0, Math.min(255, brightnessValue));
             Color faceColor = new Color(brightnessValue, brightnessValue, brightnessValue);
-            
-            // Apply color and draw the triangle
+
+            // This is where you set the values for ColoredPolygon
             lineComponent.addFace(faceData.xPoints, faceData.yPoints, faceColor);
         }
     }
+
 
     // Calculate the normal vector of a face using its vertices
     public static double[] calculateNormal(double[][] VertTable, int[] face) {
@@ -176,7 +178,7 @@ public class HelloWorld {
     // Calculate the brightness based on the dot product of the normal and light direction
     public static double calculateBrightness(double[] normal) {
         // Example light direction (you can make this dynamic)
-        double[] lightDir = {0, 0, 1}; // Light coming from the positive Z direction
+        double[] lightDir = {0, 1, 0}; // Light coming from the positive Z direction
 
         // Calculate the dot product between the normal and the light direction
         double dotProduct = normal[0] * lightDir[0] + normal[1] * lightDir[1] + normal[2] * lightDir[2];

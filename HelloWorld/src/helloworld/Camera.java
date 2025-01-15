@@ -1,90 +1,88 @@
 package helloworld;
 
 public class Camera {
-    public double[] position;  // Camera position (x, y, z)
-    public double yaw;         // Rotation angle around the vertical axis (Y-axis)
-    public double pitch;       // Rotation angle around the horizontal axis (X-axis)
-    private final double speed; // Speed of camera movement
+    public double[] position;
+    public double[] direction;  // Direction vector (camera's view)
+    public double[] up;         // Up vector
+    public double nearPlane;    // Near clipping plane
+    public double farPlane;     // Far clipping plane
+    public double fov;          // Field of view (in radians)
+    public double aspectRatio;  // Aspect ratio of the screen
 
-    public Camera(double[] position) {
+    public Camera(double[] position, double[] direction, double[] up, double fov, double aspectRatio, double nearPlane, double farPlane) {
         this.position = position;
-        this.yaw = 0;
-        this.pitch = 0;
-        this.speed = 100; // Set a reasonable movement speed
+        this.direction = direction;
+        this.up = up;
+        this.fov = fov;
+        this.aspectRatio = aspectRatio;
+        this.nearPlane = nearPlane;
+        this.farPlane = farPlane;
     }
 
+    // This method creates a view matrix, for simplicity, we assume the camera looks at the origin
     public double[][] getViewMatrix() {
-        double[][] matrix = new double[4][4];
+        // Compute the right, up, and forward vectors
+        double[] right = crossProduct(direction, up);
+        double[] trueUp = crossProduct(right, direction);
 
-        // Calculate the rotation matrix based on yaw and pitch
-        double cosYaw = Math.cos(Math.toRadians(yaw));
-        double sinYaw = Math.sin(Math.toRadians(yaw));
-        double cosPitch = Math.cos(Math.toRadians(pitch));
-        double sinPitch = Math.sin(Math.toRadians(pitch));
+        // Translate the camera position to the origin
+        double[][] viewMatrix = new double[4][4];
 
-        // Set up rotation matrix
-        matrix[0][0] = cosYaw;          // X-axis
-        matrix[0][1] = 0;               // Y-axis
-        matrix[0][2] = -sinYaw;         // Z-axis
-        matrix[0][3] = 0;
+        viewMatrix[0][0] = right[0];
+        viewMatrix[0][1] = right[1];
+        viewMatrix[0][2] = right[2];
+        viewMatrix[0][3] = -dotProduct(right, position);
 
-        matrix[1][0] = sinYaw * sinPitch; // X-axis
-        matrix[1][1] = cosPitch;          // Y-axis
-        matrix[1][2] = cosYaw * sinPitch; // Z-axis
-        matrix[1][3] = 0;
+        viewMatrix[1][0] = trueUp[0];
+        viewMatrix[1][1] = trueUp[1];
+        viewMatrix[1][2] = trueUp[2];
+        viewMatrix[1][3] = -dotProduct(trueUp, position);
 
-        matrix[2][0] = sinYaw * cosPitch; // X-axis
-        matrix[2][1] = -sinPitch;         // Y-axis
-        matrix[2][2] = cosYaw * cosPitch; // Z-axis
-        matrix[2][3] = 0;
+        viewMatrix[2][0] = -direction[0];
+        viewMatrix[2][1] = -direction[1];
+        viewMatrix[2][2] = -direction[2];
+        viewMatrix[2][3] = dotProduct(direction, position);
 
-        // Translate to camera position
-        matrix[3][0] = -dotProduct(matrix[0], position);
-        matrix[3][1] = -dotProduct(matrix[1], position);
-        matrix[3][2] = -dotProduct(matrix[2], position);
-        matrix[3][3] = 1;
+        viewMatrix[3][0] = 0;
+        viewMatrix[3][1] = 0;
+        viewMatrix[3][2] = 0;
+        viewMatrix[3][3] = 1;
 
-        return matrix;
+        return viewMatrix;
     }
 
-    private double dotProduct(double[] vector, double[] point) {
-        return vector[0] * point[0] + vector[1] * point[1] + vector[2] * point[2];
+    // Movement methods
+    public void moveForward(double distance) {
+        position[0] += direction[0] * distance;
+        position[1] += direction[1] * distance;
+        position[2] += direction[2] * distance;
     }
 
-    public void rotate(double deltaYaw, double deltaPitch) {
-        this.yaw += deltaYaw;
-        this.pitch += deltaPitch;
-
-        // Clamp pitch to avoid flipping
-        if (this.pitch > 89) this.pitch = 89;
-        if (this.pitch < -89) this.pitch = -89;
+    public void moveBackward(double distance) {
+        moveForward(-distance);
     }
 
-    public void moveForward() {
-        position[0] += speed * Math.sin(Math.toRadians(yaw)); // Move in the direction of yaw
-        position[2] -= speed * Math.cos(Math.toRadians(yaw)); // Adjust for the Z-axis
+    public void moveLeft(double distance) {
+        double[] left = crossProduct(up, direction);
+        position[0] += left[0] * distance;
+        position[1] += left[1] * distance;
+        position[2] += left[2] * distance;
     }
 
-    public void moveBackward() {
-        position[0] -= speed * Math.sin(Math.toRadians(yaw)); // Move in the opposite direction of yaw
-        position[2] += speed * Math.cos(Math.toRadians(yaw)); // Adjust for the Z-axis
+    public void moveRight(double distance) {
+        moveLeft(-distance);
     }
 
-    public void moveLeft() {
-        position[0] -= speed * Math.cos(Math.toRadians(yaw)); // Move left relative to yaw
-        position[2] -= speed * Math.sin(Math.toRadians(yaw)); // Adjust for the Z-axis
+    // Utility methods for vector math
+    private double[] crossProduct(double[] a, double[] b) {
+        return new double[]{
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0]
+        };
     }
 
-    public void moveRight() {
-        position[0] += speed * Math.cos(Math.toRadians(yaw)); // Move right relative to yaw
-        position[2] += speed * Math.sin(Math.toRadians(yaw)); // Adjust for the Z-axis
-    }
-
-    public void moveUp() {
-        position[1] += speed; // Move up
-    }
-
-    public void moveDown() {
-        position[1] -= speed; // Move down
+    private double dotProduct(double[] a, double[] b) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     }
 }
